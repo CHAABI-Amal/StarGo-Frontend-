@@ -1,36 +1,31 @@
 import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
-import axios from 'axios';
 import { FontAwesome, AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { login } from '../Redux/actions/authActions';
 
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const dispatch = useDispatch();
   const navigation = useNavigation();
+  const { loading, error } = useSelector((state) => state.auth);
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://192.168.0.106:3001/auth/login', {
-        username,
-        password,
-      });
-
-      const token = response.data.access_token;
+      await dispatch(login(username, password));
       Alert.alert('Success', 'Login Successful!', [
         {
           text: 'OK',
-          onPress: () => {
-            console.log('Token:', token);
-            navigation.replace('Home');
-          },
+          onPress: () => navigation.replace('Home'),
         },
       ]);
     } catch (error) {
-      console.error(error);
       Alert.alert('Error', 'Invalid credentials. Please try again.');
     }
   };
+  
 
   return (
     <View style={styles.container}>
@@ -73,8 +68,8 @@ const LoginScreen = () => {
       </TouchableOpacity>
 
       {/* Log In Button */}
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>Log In</Text>
+      <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
+        <Text style={styles.loginButtonText}>{loading ? 'Logging in...' : 'Log In'}</Text>
       </TouchableOpacity>
 
       <Text style={styles.orText}>or</Text>

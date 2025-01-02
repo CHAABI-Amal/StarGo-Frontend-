@@ -1,48 +1,42 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import axios from 'axios';
 import { AntDesign } from '@expo/vector-icons';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
+import { register, login } from '../Redux/actions/authActions';
 
 const RegisterScreen = () => {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const dispatch = useDispatch();
   const navigation = useNavigation();
 
-  const handleRegister = async () => {
-    try {
-      // Step 1: Register the user
-      const registerResponse = await axios.post('http://192.168.0.106:3001/user/register', {
-        username,
-        password,
-        email,
+  const { loading, error, registered } = useSelector((state) => state.auth);
+
+  const handleRegister = () => {
+    // Dispatch the register action
+    dispatch(register(email, username, password))
+      .then(() => {
+        if (registered) {
+          // If registration is successful, log in automatically
+          dispatch(login(username, password))
+            .then(() => {
+              Alert.alert('Success', 'Account Created and Logged In!', [
+                {
+                  text: 'OK',
+                  onPress: () => navigation.replace('SportSelectionScreen'),
+                },
+              ]);
+            })
+            .catch(() => {
+              Alert.alert('Error', 'Login failed after registration.');
+            });
+        }
+      })
+      .catch(() => {
+        Alert.alert('Error', error || 'Registration failed.');
       });
-
-      if (registerResponse.status === 201 || registerResponse.status === 200) {
-        // Step 2: Automatically log in after successful registration
-        const loginResponse = await axios.post('http://192.168.0.106:3001/auth/login', {
-          username,
-          password,
-        });
-
-        const token = loginResponse.data.access_token;
-
-        // Step 3: Display success message and navigate to Home
-        Alert.alert('Success', 'Account Created and Logged In!', [
-          {
-            text: 'OK',
-            onPress: () => {
-              console.log('Token:', token); // Log the token to console
-              navigation.replace('Home'); // Navigate to Home screen
-            },
-          },
-        ]);
-      }
-    } catch (error) {
-      console.error('Registration or Login Error:', error);
-      Alert.alert('Error', 'Registration or Login Failed. Please try again.');
-    }
   };
 
   return (
@@ -77,8 +71,14 @@ const RegisterScreen = () => {
       />
 
       {/* Sign Up Button */}
-      <TouchableOpacity style={styles.signupButton} onPress={handleRegister}>
-        <Text style={styles.signupButtonText}>Sign Up</Text>
+      <TouchableOpacity
+        style={styles.signupButton}
+        onPress={handleRegister}
+        disabled={loading}
+      >
+        <Text style={styles.signupButtonText}>
+          {loading ? 'Signing Up...' : 'Sign Up'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
